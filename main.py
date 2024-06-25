@@ -5,6 +5,13 @@ import os
 import importlib.util
 import folder_paths
 import time
+import onnxruntime as ort
+
+ort_available_providers = ort.get_available_providers()
+def custom_get_available_providers():
+    return [x for x in ort_available_providers if x != 'TensorrtExecutionProvider']
+
+ort.get_available_providers = custom_get_available_providers
 
 def execute_prestartup_script():
     def execute_script(script_path):

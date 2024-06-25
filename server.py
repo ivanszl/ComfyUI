@@ -409,13 +409,30 @@ class PromptServer():
 
         @routes.get("/object_info")
         async def get_object_info(request):
+            cache_file = os.path.join(folder_paths.get_temp_directory(),"object_info.cache")
             out = {}
+            update = False
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, 'r') as file:
+                        content = file.read()
+                        out = json.loads(content)
+                except:
+                    pass
             for x in nodes.NODE_CLASS_MAPPINGS:
                 try:
-                    out[x] = node_info(x)
+                    if x not in out:
+                        out[x] = node_info(x)
+                        update = True
                 except Exception as e:
                     logging.error(f"[ERROR] An error occurred while retrieving information for the '{x}' node.")
                     logging.error(traceback.format_exc())
+            if update:
+                try:
+                    with open(cache_file, 'w', encoding='utf-8') as outfile:
+                        json.dump(out, outfile, indent=2)
+                except:
+                    pass
             return web.json_response(out)
 
         @routes.get("/object_info/{node_class}")
