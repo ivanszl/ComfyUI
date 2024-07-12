@@ -5,6 +5,7 @@ import os
 import importlib.util
 import folder_paths
 import time
+from comfy.cli_args import args
 import onnxruntime as ort
 
 ort_available_providers = ort.get_available_providers()
@@ -12,6 +13,7 @@ def custom_get_available_providers():
     return [x for x in ort_available_providers if x != 'TensorrtExecutionProvider']
 
 ort.get_available_providers = custom_get_available_providers
+
 
 def execute_prestartup_script():
     def execute_script(script_path):
@@ -24,6 +26,9 @@ def execute_prestartup_script():
         except Exception as e:
             print(f"Failed to execute startup-script: {script_path} / {e}")
         return False
+
+    if args.disable_all_custom_nodes:
+        return
 
     node_paths = folder_paths.get_folder_paths("custom_nodes")
     for custom_node_path in node_paths:
@@ -60,7 +65,6 @@ import shutil
 import threading
 import gc
 
-from comfy.cli_args import args
 import logging
 
 if os.name == "nt":
@@ -83,7 +87,7 @@ import yaml
 import execution
 import server
 from server import BinaryEventTypes
-from nodes import init_custom_nodes
+import nodes
 import comfy.model_management
 
 def cuda_malloc_warning():
@@ -221,7 +225,7 @@ if __name__ == "__main__":
         for config_path in itertools.chain(*args.extra_model_paths_config):
             load_extra_path_config(config_path)
 
-    init_custom_nodes()
+    nodes.init_extra_nodes(init_custom_nodes=not args.disable_all_custom_nodes)
 
     cuda_malloc_warning()
 
