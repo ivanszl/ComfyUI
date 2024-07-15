@@ -185,8 +185,8 @@ class ComfyApi extends EventTarget {
 	 * Loads node object definitions for the graph
 	 * @returns The node definitions
 	 */
-	async getNodeDefs() {
-		const resp = await this.fetchApi("/object_info", { cache: "no-store" });
+	async getNodeDefs(refresh) {
+		const resp = await this.fetchApi("/object_info" + (refresh ? "?refresh=yes":""), { cache: "no-store" });
 		return await resp.json();
 	}
 

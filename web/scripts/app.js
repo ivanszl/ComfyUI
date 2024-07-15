@@ -2406,7 +2406,7 @@ export class ComfyApp {
 	 * Refresh combo list on whole nodes
 	 */
 	async refreshComboInNodes() {
-		const defs = await api.getNodeDefs();
+		const defs = await api.getNodeDefs(true);
 
 		for (const nodeId in defs) {
 			this.registerNodeDef(nodeId, defs[nodeId]);

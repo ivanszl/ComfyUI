@@ -7,6 +7,7 @@ import folder_paths
 import time
 from comfy.cli_args import args
 import onnxruntime as ort
+import enable_cache
 
 ort_available_providers = ort.get_available_providers()
 def custom_get_available_providers():
@@ -228,6 +229,8 @@ if __name__ == "__main__":
     nodes.init_extra_nodes(init_custom_nodes=not args.disable_all_custom_nodes)
 
     cuda_malloc_warning()
+    
+    enable_cache.hijack_enable_cache(server)
 
     server.add_routes()
     hijack_progress(server)
@@ -252,10 +255,11 @@ if __name__ == "__main__":
     if args.quick_test_for_ci:
         exit(0)
 
-    call_on_start = None
+    call_on_start = enable_cache.call_on_start
     if args.auto_launch:
         def startup_server(scheme, address, port):
             import webbrowser
+            enable_cache.call_on_start(scheme, address, port)
             if os.name == 'nt' and address == '0.0.0.0':
                 address = '127.0.0.1'
             webbrowser.open(f"{scheme}://{address}:{port}")
