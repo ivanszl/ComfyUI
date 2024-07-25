@@ -19,8 +19,8 @@ from . import model_detection
 from . import sd1_clip
 from . import sd2_clip
 from . import sdxl_clip
-from . import sd3_clip
-from . import sa_t5
+import comfy.text_encoders.sd3_clip
+import comfy.text_encoders.sa_t5
 import comfy.text_encoders.aura_t5
 
 import comfy.model_patcher
@@ -60,7 +60,7 @@ def load_lora_for_models(model, clip, lora, strength_model, strength_clip):
 
 
 class CLIP:
-    def __init__(self, target=None, embedding_directory=None, no_init=False):
+    def __init__(self, target=None, embedding_directory=None, no_init=False, tokenizer_data={}):
         if no_init:
             return
         params = target.params.copy()
@@ -79,7 +79,7 @@ class CLIP:
             if not model_management.supports_cast(load_device, dt):
                 load_device = offload_device
 
-        self.tokenizer = tokenizer(embedding_directory=embedding_directory)
+        self.tokenizer = tokenizer(embedding_directory=embedding_directory, tokenizer_data=tokenizer_data)
         self.patcher = comfy.model_patcher.ModelPatcher(self.cond_stage_model, load_device=load_device, offload_device=offload_device)
         self.layer_idx = None
         logging.debug("CLIP model load device: {}, offload device: {}".format(load_device, offload_device))
@@ -414,27 +414,27 @@ def load_clip(ckpt_paths, embedding_directory=None, clip_type=CLIPType.STABLE_DI
             weight = clip_data[0]["encoder.block.23.layer.1.DenseReluDense.wi_1.weight"]
             dtype_t5 = weight.dtype
             if weight.shape[-1] == 4096:
-                clip_target.clip = sd3_clip.sd3_clip(clip_l=False, clip_g=False, t5=True, dtype_t5=dtype_t5)
-                clip_target.tokenizer = sd3_clip.SD3Tokenizer
+                clip_target.clip = comfy.text_encoders.sd3_clip.sd3_clip(clip_l=False, clip_g=False, t5=True, dtype_t5=dtype_t5)
+                clip_target.tokenizer = comfy.text_encoders.sd3_clip.SD3Tokenizer
             elif weight.shape[-1] == 2048:
                 clip_target.clip = comfy.text_encoders.aura_t5.AuraT5Model
                 clip_target.tokenizer = comfy.text_encoders.aura_t5.AuraT5Tokenizer
         elif "encoder.block.0.layer.0.SelfAttention.k.weight" in clip_data[0]:
-            clip_target.clip = sa_t5.SAT5Model
-            clip_target.tokenizer = sa_t5.SAT5Tokenizer
+            clip_target.clip = comfy.text_encoders.sa_t5.SAT5Model
+            clip_target.tokenizer = comfy.text_encoders.sa_t5.SAT5Tokenizer
         else:
             clip_target.clip = sd1_clip.SD1ClipModel
             clip_target.tokenizer = sd1_clip.SD1Tokenizer
     elif len(clip_data) == 2:
         if clip_type == CLIPType.SD3:
-            clip_target.clip = sd3_clip.sd3_clip(clip_l=True, clip_g=True, t5=False)
-            clip_target.tokenizer = sd3_clip.SD3Tokenizer
+            clip_target.clip = comfy.text_encoders.sd3_clip.sd3_clip(clip_l=True, clip_g=True, t5=False)
+            clip_target.tokenizer = comfy.text_encoders.sd3_clip.SD3Tokenizer
         else:
             clip_target.clip = sdxl_clip.SDXLClipModel
             clip_target.tokenizer = sdxl_clip.SDXLTokenizer
     elif len(clip_data) == 3:
-        clip_target.clip = sd3_clip.SD3ClipModel
-        clip_target.tokenizer = sd3_clip.SD3Tokenizer
+        clip_target.clip = comfy.text_encoders.sd3_clip.SD3ClipModel
+        clip_target.tokenizer = comfy.text_encoders.sd3_clip.SD3Tokenizer
 
     clip = CLIP(clip_target, embedding_directory=embedding_directory)
     for c in clip_data:
@@ -520,7 +520,7 @@ def load_checkpoint_guess_config(ckpt_path, output_vae=True, output_clip=True, o
         if clip_target is not None:
             clip_sd = model_config.process_clip_state_dict(sd)
             if len(clip_sd) > 0:
-                clip = CLIP(clip_target, embedding_directory=embedding_directory)
+                clip = CLIP(clip_target, embedding_directory=embedding_directory, tokenizer_data=clip_sd)
                 m, u = clip.load_sd(clip_sd, full_model=True)
                 if len(m) > 0:
                     m_filter = list(filter(lambda a: ".logit_scale" not in a and ".transformer.text_projection.weight" not in a, m))
@@ -562,26 +562,25 @@ def load_unet_state_dict(sd): #load unet in diffusers or regular format
 
     if model_config is not None:
         new_sd = sd
-    elif 'transformer_blocks.0.attn.add_q_proj.weight' in sd: #MMDIT SD3
+    else:
         new_sd = model_detection.convert_diffusers_mmdit(sd, "")
-        if new_sd is None:
-            return None
-        model_config = model_detection.model_config_from_unet(new_sd, "")
-        if model_config is None:
-            return None
-    else: #diffusers
-        model_config = model_detection.model_config_from_diffusers_unet(sd)
-        if model_config is None:
-            return None
+        if new_sd is not None: #diffusers mmdit
+            model_config = model_detection.model_config_from_unet(new_sd, "")
+            if model_config is None:
+                return None
+        else: #diffusers unet
+            model_config = model_detection.model_config_from_diffusers_unet(sd)
+            if model_config is None:
+                return None
 
-        diffusers_keys = comfy.utils.unet_to_diffusers(model_config.unet_config)
+            diffusers_keys = comfy.utils.unet_to_diffusers(model_config.unet_config)
 
-        new_sd = {}
-        for k in diffusers_keys:
-            if k in sd:
-                new_sd[diffusers_keys[k]] = sd.pop(k)
-            else:
-                logging.warning("{} {}".format(diffusers_keys[k], k))
+            new_sd = {}
+            for k in diffusers_keys:
+                if k in sd:
+                    new_sd[diffusers_keys[k]] = sd.pop(k)
+                else:
+                    logging.warning("{} {}".format(diffusers_keys[k], k))
 
     offload_device = model_management.unet_offload_device()
     unet_dtype = model_management.unet_dtype(model_params=parameters, supported_dtypes=model_config.supported_inference_dtypes)
