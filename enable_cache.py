@@ -45,7 +45,7 @@ async def cache_object_info(request:web.Request):
     dynamic_object_info()
   if not os.path.exists("./.one_cache/object_info.json"):
     dynamic_object_info()
-  return web.FileResponse("./.one_cache/object_info.json", headers={'Content-Type':"application/json", 'Cache-Control': 'no-cache'})
+  return web.FileResponse("./.one_cache/object_info.json")
 
 @web.middleware
 async def gzip_middleware(request:web.Request, handler: Handler):
