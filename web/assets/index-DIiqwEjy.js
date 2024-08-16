@@ -67,6 +67,7 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+
 var _registered, _ComfyApi_instances, pollQueue_fn, createSocket_fn, postItem_fn, _buttons, _a, _ComfySettingsDialog_instances, dispatchChange_fn, _type, _text, _reverse, _enabled, _console, _over, _popupOpen, _ComfyPopup_instances, hide_fn, show_fn, _escHandler, _clickHandler, _internalQueueSize, _app, _ChangeTracker_instances, setApp_fn, _resolve, _activePromptId, _unsavedCount, _activeWorkflow, _ComfyWorkflowManager_instances, bindExecutionEvents_fn, _name, _path, _pathParts, _isFavorite, _ComfyWorkflow_instances, updatePath_fn, save_fn, _first, _updateProgress, _updateActive, _ComfyWorkflowsMenu_instances, bindEvents_fn, getMenuOptions_fn, getFavoriteMenuOptions_fn, _ComfyWorkflowsContent_instances, expandNode_fn, updateActive_fn, removeActive_fn, getFavoriteIcon_fn, getFavoriteOverIcon_fn, getFavoriteTooltip_fn, getFavoriteButton_fn, getDeleteButton_fn, getInsertButton_fn, getRenameButton_fn, getWorkflowElement_fn, createLeafNode_fn, createNode_fn, _options, _sizeBreak, _lastSizeBreaks, _sizeBreaks, _cachedInnerSize, _cacheTimeout, _queueItems, _processingQueue, _ComfyApp_instances, invokeExtensions_fn, invokeExtensionsAsync_fn, addRestoreWorkflowView_fn, addNodeContextMenuHandler_fn, addNodeKeyHandler_fn, addDrawBackgroundHandler_fn, addDropHandler_fn, addPasteHandler_fn, addCopyHandler_fn, addProcessMouseHandler_fn, addProcessKeyHandler_fn, addDrawGroupsHandler_fn, addDrawNodeHandler_fn, addApiUpdateHandlers_fn, addKeyboardHandler_fn, addConfigureHandler_fn, addAfterConfigureHandler_fn, loadExtensions_fn, migrateSettings_fn, setUser_fn, formatPromptError_fn, formatExecutionError_fn;
 (function polyfill() {
   const relList = document.createElement("link").relList;
@@ -29095,9 +29096,9 @@ class ComfyApi extends EventTarget {
    * Loads node object definitions for the graph
    * @returns The node definitions
    */
-  getNodeDefs() {
+  getNodeDefs(refresh) {
     return __async(this, null, function* () {
-      const resp = yield this.fetchApi("/object_info", { cache: "no-store" });
+      const resp = yield this.fetchApi("/object_info" + (refresh ? "?refresh=yes":""), { cache: "no-store" });
       const objectInfoUnsafe = yield resp.json();
       const objectInfo = {};
       for (const key in objectInfoUnsafe) {
@@ -59302,7 +59303,7 @@ const _ComfyApp = class _ComfyApp {
   refreshComboInNodes() {
     return __async(this, null, function* () {
       var _a2;
-      const defs = yield api.getNodeDefs();
+      const defs = yield api.getNodeDefs(true);
       for (const nodeId in defs) {
         this.registerNodeDef(nodeId, defs[nodeId]);
       }
