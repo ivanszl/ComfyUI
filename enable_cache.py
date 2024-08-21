@@ -52,7 +52,10 @@ async def gzip_middleware(request:web.Request, handler: Handler):
   if request.path == "/object_info" or request.path == "/api/object_info":
     handler = cache_object_info
   response = await handler(request)
-  response.enable_compression()
+  
+  if response.content_length is None or response.content_length > 1000:
+    response.enable_compression()
+  
   return response
     
 
