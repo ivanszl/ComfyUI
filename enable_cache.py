@@ -53,8 +53,9 @@ async def gzip_middleware(request:web.Request, handler: Handler):
     handler = cache_object_info
   response = await handler(request)
   
-  if response.content_length is None or response.content_length > 1000:
-    response.enable_compression()
+  if not response.headers.get('Content-Encoding'):
+    if response.content_length is None or response.content_length > 1000:
+      response.enable_compression()
   
   return response
     
