@@ -369,7 +369,7 @@ def minimum_inference_memory():
 
 EXTRA_RESERVED_VRAM = 200 * 1024 * 1024
 if any(platform.win32_ver()):
-    EXTRA_RESERVED_VRAM = 400 * 1024 * 1024 #Windows is higher because of the shared vram issue
+    EXTRA_RESERVED_VRAM = 500 * 1024 * 1024 #Windows is higher because of the shared vram issue
 
 if args.reserve_vram is not None:
     EXTRA_RESERVED_VRAM = args.reserve_vram * 1024 * 1024 * 1024
@@ -979,7 +979,7 @@ def should_use_fp16(device=None, model_params=0, prioritize_performance=True, ma
     if torch.version.hip:
         return True
 
-    props = torch.cuda.get_device_properties("cuda")
+    props = torch.cuda.get_device_properties(device)
     if props.major >= 8:
         return True
 
@@ -1035,7 +1035,7 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
     if is_intel_xpu():
         return True
 
-    props = torch.cuda.get_device_properties("cuda")
+    props = torch.cuda.get_device_properties(device)
     if props.major >= 8:
         return True
 
@@ -1047,6 +1047,16 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
             return True
 
     return False
+
+def supports_fp8_compute(device=None):
+    props = torch.cuda.get_device_properties(device)
+    if props.major >= 9:
+        return True
+    if props.major < 8:
+        return False
+    if props.minor < 9:
+        return False
+    return True
 
 def soft_empty_cache(force=False):
     global cpu_state
