@@ -251,6 +251,7 @@ if __name__ == "__main__":
     if args.quick_test_for_ci:
         exit(0)
 
+    os.makedirs(folder_paths.get_temp_directory(), exist_ok=True)
     call_on_start = enable_cache.call_on_start
     if args.auto_launch:
         def startup_server(scheme, address, port):
