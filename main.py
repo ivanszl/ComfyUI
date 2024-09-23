@@ -71,7 +71,6 @@ import gc
 
 import logging
 import utils.extra_config
-import enable_cache
 
 if os.name == "nt":
     logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
@@ -219,6 +218,7 @@ if __name__ == "__main__":
 
     cuda_malloc_warning()
     
+    import enable_cache
     enable_cache.hijack_enable_cache(server)
 
     server.add_routes()
