@@ -6,14 +6,8 @@ import importlib.util
 import folder_paths
 import time
 from comfy.cli_args import args
-import onnxruntime as ort
 import enable_cache
 
-ort_available_providers = ort.get_available_providers()
-def custom_get_available_providers():
-    return [x for x in ort_available_providers if x != 'TensorrtExecutionProvider']
-
-ort.get_available_providers = custom_get_available_providers
 from app.logger import setup_logger
 
 
@@ -72,6 +66,14 @@ import gc
 
 import logging
 import utils.extra_config
+
+import onnxruntime as ort
+
+ort_available_providers = ort.get_available_providers()
+def custom_get_available_providers():
+    return [x for x in ort_available_providers if x != 'TensorrtExecutionProvider']
+
+ort.get_available_providers = custom_get_available_providers
 
 if os.name == "nt":
     logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
