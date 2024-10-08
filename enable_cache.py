@@ -67,10 +67,17 @@ async def gzip_middleware(request:web.Request, handler: Handler):
       response.enable_compression()
   
   return response
-    
+
+@web.middleware
+async def ignore_cache(request:web.Request, handler: Handler):
+  response = await handler(request)
+  if request.path == "/" or request.path == "/index.html":
+    response.headers.add('Cache-Control', 'no-cache, no-store')
+  return response
 
 def hijack_enable_cache(server:server.PromptServer):
   server.app.middlewares.append(gzip_middleware)
+  server.app.middlewares.append(ignore_cache)
   
 def call_on_start(scheme, address, port):
   dynamic_object_info()
